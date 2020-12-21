@@ -65,6 +65,7 @@ async def client(url):
     results = {}
     users = ldap_client.pagedsearch('(objectClass=user)', ['*'])
     async for user in users:
+        user = user[0]
         interesting = False
         output = f"{user['objectName']}\n"
         for k,v in user['attributes'].items():
@@ -94,7 +95,8 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--password", help="Password to authenticate with", required=True)
     parser.add_argument("-t", "--target", help="Target LDAP to request", required=True)
     args = parser.parse_args()
-    url = f"ldap+simple://{args.domain}\\{args.username}:{args.password}@{args.target}"
+    url = f"ldap+ntlm-password://{args.domain}\\{args.username}:{args.password}@{args.target}"
+    print(url)
     results = asyncio.run(client(url))
     print(json.dumps(results, sort_keys=True, indent=4))
 
