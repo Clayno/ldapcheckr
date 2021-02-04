@@ -44,6 +44,8 @@ def entropy(string):
     return entropy
 
 def analyze(string):
+    return False
+    '''
     words = string.split()
     for word in words:
         strength, _ = passwordmeter.test(word)
@@ -52,6 +54,7 @@ def analyze(string):
         if len(words) == 1 and entropy(word) > ENTROPY_THRESHOLD:
             return True
     return False
+    '''
 
 async def client(url):
     #blacklist = ['msExch', 'mDB']
