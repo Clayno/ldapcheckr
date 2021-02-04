@@ -21,6 +21,7 @@ INTERESTING_ATTRIBUTES_LIST = [ k for k in INTERESTING_ATTRIBUTES.keys() ]
 INTERESTING_KEYWORDS = ["mdp",
         "mot de passe",
         "pwd",
+        "pw",
         "password",
         "passwd"
         ]
