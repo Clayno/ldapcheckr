@@ -76,7 +76,7 @@ async def client(url):
         #    if k not in attributes and not any(b in k for b in blacklist):
         #        print(f"{str(k)}: {str(v)}")
             if k in INTERESTING_ATTRIBUTES_LIST: 
-                interesting = True
+                #interesting = True
                 if isinstance(v, list):
                     v = ''.join(subvalue.decode() for subvalue in v)
                 if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
