@@ -11,7 +11,9 @@ INTERESTING_ATTRIBUTES = {"comment": False,
         "description": False,
         "info": False,
         "UserPassword": True,
+        "userPassword": True,
         "UnixUserPassword": True,
+        "unixUserPassword": True,
         "unicodePwd": True,
         "msSFU30Password": True,
         "ms-Mcs-AdmPwd": True}
@@ -70,26 +72,23 @@ async def client(url):
     users = ldap_client.pagedsearch('(objectClass=user)', ['*'])
     async for user in users:
         user = user[0]
-        interesting = False
         output = f"{user['objectName']}\n"
         for k,v in user['attributes'].items():
         #    if k not in attributes and not any(b in k for b in blacklist):
         #        print(f"{str(k)}: {str(v)}")
-            if k in INTERESTING_ATTRIBUTES_LIST: 
                 #interesting = True
-                if isinstance(v, list):
-                    v = ''.join(subvalue.decode() for subvalue in v)
-                if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
-                        or INTERESTING_ATTRIBUTES[k] \
-                        or analyze(v):
-                    output += colored(f"    {str(k)}: {str(v)}\n", "yellow", attrs=['bold'])
-                    if user['objectName'] not in results:
-                        results[user['objectName']] = []
-                    results[user['objectName']].append(f"{str(k)}: {str(v)}")
-                else:
-                    output += f"    {str(k)}: {str(v)}\n"
-        if interesting:
-            print(output)
+            if isinstance(v, list):
+                try:
+                    v = ''.join(subvalue.decode() if isinstance(subvalue, type(b'')) else subvalue for subvalue in v)
+                except:
+                    v = ''
+            if not isinstance(v, str):
+                continue
+            if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
+                    or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]):
+                if user['objectName'] not in results:
+                    results[user['objectName']] = []
+                results[user['objectName']].append(f"{str(k)}: {str(v)}")
     return results
 
 if __name__ == '__main__':

@@ -1,11 +1,14 @@
 [[source]]
-name = "pypi"
-url = "https://pypi.org/simple"
+url = "https://pypi.python.org/simple"
 verify_ssl = true
-
-[dev-packages]
+name = "pypi"
 
 [packages]
+passwordmeter = "*"
+termcolor = "*"
+msldap = "*"
+
+[dev-packages]
 
 [requires]
 python_version = "3.7"
