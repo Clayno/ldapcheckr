@@ -7,6 +7,8 @@ from termcolor import colored
 from msldap.commons.url import MSLDAPURLDecoder
 
 
+UNINTERESTING_ATTRIBUTES = ["memberOf", "cn", "sAMAccountName", "name", "distinguishedName", "dNSHostName", "servicePrincipalName"]
+
 INTERESTING_ATTRIBUTES = {"comment": False,
         "description": False,
         "info": False,
@@ -77,6 +79,8 @@ async def client(url):
         #    if k not in attributes and not any(b in k for b in blacklist):
         #        print(f"{str(k)}: {str(v)}")
                 #interesting = True
+            if k in UNINTERESTING_ATTRIBUTES:
+                continue
             if isinstance(v, list):
                 try:
                     v = ''.join(subvalue.decode() if isinstance(subvalue, type(b'')) else subvalue for subvalue in v)
