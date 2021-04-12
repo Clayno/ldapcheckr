@@ -1,8 +1,7 @@
 import asyncio
 import json
-import math
-import passwordmeter
 import argparse
+import re
 from termcolor import colored
 from msldap.commons.url import MSLDAPURLDecoder
 
@@ -24,14 +23,14 @@ INTERESTING_ATTRIBUTES_LIST = [ k for k in INTERESTING_ATTRIBUTES.keys() ]
 
 INTERESTING_KEYWORDS = ["mdp",
         "mot de passe",
-        "pwd",
-        "pw",
         "password",
         "passwd"
         ]
 
-PASSWORDMETER_STRENGTH = 0.45
-ENTROPY_THRESHOLD = 3.1
+INTERESTING_PATTERNS = ["[^\w]pwd[^\w]",
+    "[^\w]pw[^\w]",
+    "[^\w]mdp[^\w]"
+    ]
 
 def load_attributes():
     # https://gist.github.com/ropnop/ff2acb218b8dbbe8e1a5d5245abdfd8e
@@ -40,26 +39,6 @@ def load_attributes():
         attributes = [ attr["Ldap-Display-Name"] for attr in attributes ]
     return attributes
 
-def entropy(string):
-    "Calculates the Shannon entropy of a string"
-    # get probability of chars in string
-    prob = [ float(string.count(c)) / len(string) for c in dict.fromkeys(list(string)) ]
-    # calculate the entropy
-    entropy = - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
-    return entropy
-
-def analyze(string):
-    return False
-    '''
-    words = string.split()
-    for word in words:
-        strength, _ = passwordmeter.test(word)
-        if strength > PASSWORDMETER_STRENGTH:
-            return True
-        if len(words) == 1 and entropy(word) > ENTROPY_THRESHOLD:
-            return True
-    return False
-    '''
 
 async def client(url):
     #blacklist = ['msExch', 'mDB']
@@ -76,9 +55,6 @@ async def client(url):
         user = user[0]
         output = f"{user['objectName']}\n"
         for k,v in user['attributes'].items():
-        #    if k not in attributes and not any(b in k for b in blacklist):
-        #        print(f"{str(k)}: {str(v)}")
-                #interesting = True
             if k in UNINTERESTING_ATTRIBUTES:
                 continue
             if isinstance(v, list):
@@ -89,7 +65,8 @@ async def client(url):
             if not isinstance(v, str):
                 continue
             if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
-                    or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]):
+                    or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]) \
+                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS):
                 if user['objectName'] not in results:
                     results[user['objectName']] = []
                 results[user['objectName']].append(f"{str(k)}: {str(v)}")
