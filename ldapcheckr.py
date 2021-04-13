@@ -6,7 +6,7 @@ from termcolor import colored
 from msldap.commons.url import MSLDAPURLDecoder
 
 
-UNINTERESTING_ATTRIBUTES = ["memberOf", "cn", "sAMAccountName", "name", "distinguishedName", "dNSHostName", "servicePrincipalName"]
+UNINTERESTING_ATTRIBUTES = ["memberOf", "cn", "sAMAccountName", "name", "distinguishedName", "dNSHostName", "servicePrincipalName", "objectGUID", "sn", "objectClass", "displayName", "company", "logonHours", "objectSid", "sIDHistory", "userPrincipalName", "objectCategory", "mS-DS-ConsistencyGuid", "givenName"]
 
 INTERESTING_ATTRIBUTES = {"comment": False,
         "description": False,
@@ -31,6 +31,8 @@ INTERESTING_PATTERNS = ["[^\w]pwd[^\w]",
     "[^\w]pw[^\w]",
     "[^\w]mdp[^\w]"
     ]
+
+INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES = ["^(?=.*[A-Za-z])(?=.*\d)[^\s]{6,}$"]
 
 def load_attributes():
     # https://gist.github.com/ropnop/ff2acb218b8dbbe8e1a5d5245abdfd8e
@@ -66,7 +68,8 @@ async def client(url):
                 continue
             if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
                     or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]) \
-                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS):
+                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS) \
+                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES if k in INTERESTING_ATTRIBUTES):
                 if user['objectName'] not in results:
                     results[user['objectName']] = []
                 results[user['objectName']].append(f"{str(k)}: {str(v)}")
