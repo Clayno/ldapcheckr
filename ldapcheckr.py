@@ -1,81 +1,37 @@
 #!/usr/bin/env python3
 
 import asyncio
-import json
 import argparse
-import re
-from termcolor import colored
+import json
 from msldap.commons.url import MSLDAPURLDecoder
 
+from modules.policy import get_policies
+from modules.creds import get_creds
+from modules.domain import get_domain
 
-UNINTERESTING_ATTRIBUTES = ["memberOf", "cn", "sAMAccountName", "name", "distinguishedName", "dNSHostName", "servicePrincipalName", "objectGUID", "sn", "objectClass", "displayName", "company", "logonHours", "objectSid", "sIDHistory", "userPrincipalName", "objectCategory", "mS-DS-ConsistencyGuid", "givenName"]
-
-INTERESTING_ATTRIBUTES = {"comment": False,
-        "description": False,
-        "info": False,
-        "UserPassword": True,
-        "userPassword": True,
-        "UnixUserPassword": True,
-        "unixUserPassword": True,
-        "unicodePwd": True,
-        "msSFU30Password": True,
-        "ms-Mcs-AdmPwd": True}
-
-INTERESTING_ATTRIBUTES_LIST = [ k for k in INTERESTING_ATTRIBUTES.keys() ]
-
-INTERESTING_KEYWORDS = ["mdp",
-        "mot de passe",
-        "password",
-        "passwd"
-        ]
-
-INTERESTING_PATTERNS = ["[^\w]pwd[^\w]",
-    "[^\w]pw[^\w]",
-    "[^\w]mdp[^\w]"
-    ]
-
-INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES = ["^(?=.*[A-Za-z])(?=.*\d)[^\s]{6,}$"]
-
-def load_attributes():
-    # https://gist.github.com/ropnop/ff2acb218b8dbbe8e1a5d5245abdfd8e
-    with open("ADAttributes.json") as f:
-        attributes = json.load(f)
-        attributes = [ attr["Ldap-Display-Name"] for attr in attributes ]
-    return attributes
-
-
-async def client(url):
-    #blacklist = ['msExch', 'mDB']
-    #attributes = load_attributes()
+async def get_client(url):
     conn_url = MSLDAPURLDecoder(url)
     ldap_client = conn_url.get_client()
     _, err = await ldap_client.connect()
     if err is not None:
         raise err
-   
-    results = {}
-    users = ldap_client.pagedsearch('(objectClass=user)', ['*'])
-    async for user in users:
-        user = user[0]
-        output = f"{user['objectName']}\n"
-        for k,v in user['attributes'].items():
-            if k in UNINTERESTING_ATTRIBUTES:
-                continue
-            if isinstance(v, list):
-                try:
-                    v = ''.join(subvalue.decode() if isinstance(subvalue, type(b'')) else subvalue for subvalue in v)
-                except:
-                    v = ''
-            if not isinstance(v, str):
-                continue
-            if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
-                    or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]) \
-                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS) \
-                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES if k in INTERESTING_ATTRIBUTES):
-                if user['objectName'] not in results:
-                    results[user['objectName']] = []
-                results[user['objectName']].append(f"{str(k)}: {str(v)}")
-    return results
+    return ldap_client
+
+
+async def main(url):
+    ldap_client = await get_client(url)
+    print('########################## DOMAIN INFOS #########################')
+    infos = await get_domain(ldap_client)
+    print(infos[0])
+    print('########################## DOMAIN POLICIES #########################')
+    passpols = await get_policies(ldap_client)
+    for passpol in passpols:
+        print(passpol)
+        print()
+    print('########################## CREDS IN DESCRIPTION #########################')
+    creds = await get_creds(ldap_client) 
+    print(json.dumps(creds, sort_keys=True, indent=4))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Check for credz in LDAP fields")
@@ -85,7 +41,5 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--target", help="Target LDAP to request", required=True)
     args = parser.parse_args()
     url = f"ldap+ntlm-password://{args.domain}\\{args.username}:{args.password}@{args.target}"
-    print(url)
-    results = asyncio.run(client(url))
-    print(json.dumps(results, sort_keys=True, indent=4))
+    asyncio.run(main(url))
 
