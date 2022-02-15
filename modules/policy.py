@@ -156,3 +156,10 @@ async def get_policies(ldap_client):
         passpol = PassPol(passpol)
         passpols.append(passpol)
     return passpols
+
+
+def display_passpols_to_table(passpols):
+    print(f"{'Policy name':<40}|{'MinPwdLen':^15}|{'MaxPwdAge (days)':^15}|{'LockTreshold':^15}|{'LockDuration (mins)':^15}|{'Complexity':^15}")
+    for passpol in passpols:
+        print(f"{passpol.name:<40} {passpol.minimumPasswordLength:^15} {passpol.maximumPasswordAge:^15} {passpol.lockoutThreshold:^15} {passpol.lockoutDuration:^15} {passpol.passwordComplexityEnabled:^15} ")
+

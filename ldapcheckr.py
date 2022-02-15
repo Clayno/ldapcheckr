@@ -5,7 +5,7 @@ import argparse
 import json
 from msldap.commons.url import MSLDAPURLDecoder
 
-from modules.policy import get_policies
+from modules.policy import get_policies, display_passpols_to_table
 from modules.creds import get_creds
 from modules.domain import get_domain
 
@@ -18,16 +18,19 @@ async def get_client(url):
     return ldap_client
 
 
-async def main(url):
+async def main(url, args):
     ldap_client = await get_client(url)
     print('########################## DOMAIN INFOS #########################')
     infos = await get_domain(ldap_client)
     print(infos[0])
     print('########################## DOMAIN POLICIES #########################')
     passpols = await get_policies(ldap_client)
-    for passpol in passpols:
-        print(passpol)
-        print()
+    if args.details:
+        for passpol in passpols:
+            print(passpol)
+            print()
+    else:
+        display_passpols_to_table(passpols)
     print('########################## CREDS IN DESCRIPTION #########################')
     creds = await get_creds(ldap_client) 
     print(json.dumps(creds, sort_keys=True, indent=4))
@@ -39,7 +42,8 @@ if __name__ == '__main__':
     parser.add_argument("-u", "--username", help="Username to authenticate with", required=True)
     parser.add_argument("-p", "--password", help="Password to authenticate with", required=True)
     parser.add_argument("-t", "--target", help="Target LDAP to request", required=True)
+    parser.add_argument("--details", action="store_true", help="Display details")
     args = parser.parse_args()
     url = f"ldap+ntlm-password://{args.domain}\\{args.username}:{args.password}@{args.target}"
-    asyncio.run(main(url))
+    asyncio.run(main(url, args))
 

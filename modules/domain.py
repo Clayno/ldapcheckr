@@ -15,16 +15,17 @@ class DomainInfos:
                 ]
 
     def __repr__(self):
-        to_return = f"""Domain Informations:
-    DN: {self.DN}
-    NetbiosName: {self.netbiosName}
-    MachineAccountQuota: {self.machineAccountQuota}
-    DomainControllers:
-        """
-        to_return += '\n\t'.join(self.domainControllers)
-        for attr, value in self.__dict__.items():
-            to_return += f"\t{attr}: {value}"
+        to_return = f"""
+DN: {self.DN}
+NetbiosName: {self.netbiosName}
+MachineAccountQuota: {self.machineAccountQuota}
+DomainControllers:
+    """
+        to_return += '\n    '.join(self.domainControllers)
+        #for attr, value in self.__dict__.items():
+        #    to_return += f"\n\t{attr}: {value}"
         return to_return
+
 
 async def get_domain(ldap_client):
     attributes = [
