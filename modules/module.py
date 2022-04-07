@@ -3,8 +3,10 @@ import logging
 
 logger = logging.getLogger()
 
+
 class ModuleNotFinished(Exception):
     pass
+
 
 class Module:
     def __init__(self, name, ldap_client):
@@ -14,14 +16,14 @@ class Module:
 
     async def run(self):
         try:
-            self.status = 'started'
+            self.status = "started"
             logger.info(f"We are starting {self.name} module")
             await self._work()
             logger.info(f"Ending {self.name} module")
-            self.status = 'terminated'
+            self.status = "terminated"
             return self
         except:
-            self.status = 'error'
+            self.status = "error"
             traceback.print_exc()
             raise Exception()
 
@@ -35,19 +37,20 @@ class Module:
         return ""
 
     async def get_result(self):
-        if self.status != 'started':
-            return { 
-                    "name": self.name,
-                    "status": self.status,
-                    "visual": {
-                        "html": self.to_html(),
-                        "string": self.to_string(),
-                        },
-                    "content": await self._result()
-                    }
+        if self.status != "started":
+            return {
+                "name": self.name,
+                "status": self.status,
+                "visual": {
+                    "html": self.to_html(),
+                    "string": self.to_string(),
+                },
+                "content": await self._result(),
+            }
         else:
-            raise ModuleNotFinished("The Module is still working, the result isn't available")
-
+            raise ModuleNotFinished(
+                "The Module is still working, the result isn't available"
+            )
 
     async def _result(self):
         raise NotImplementedError("A Module class needs to implement a _return method.")
