@@ -5,9 +5,11 @@ import argparse
 import json
 from msldap.commons.url import MSLDAPURLDecoder
 
-from modules.policy import get_policies, display_passpols_to_table
-from modules.creds import get_creds
-from modules.domain import get_domain
+from lib.utils import import_module
+from lib.logger import CheckrAdapter
+
+
+MODULES = ["domain", "policy", "adidns", "creds"]
 
 async def get_client(url):
     conn_url = MSLDAPURLDecoder(url)
@@ -15,26 +17,21 @@ async def get_client(url):
     _, err = await ldap_client.connect()
     if err is not None:
         raise err
+    log.info("[+] Connected to target")
     return ldap_client
 
 
 async def main(url, args):
     ldap_client = await get_client(url)
-    print('########################## DOMAIN INFOS #########################')
-    infos = await get_domain(ldap_client)
-    print(infos[0])
-    print('########################## DOMAIN POLICIES #########################')
-    passpols = await get_policies(ldap_client)
-    if args.details:
-        for passpol in passpols:
-            print(passpol)
-            print()
-    else:
-        display_passpols_to_table(passpols)
-    print('########################## CREDS IN DESCRIPTION #########################')
-    creds = await get_creds(ldap_client) 
-    print(json.dumps(creds, sort_keys=True, indent=4))
-
+    for corountine in asyncio.as_completed([import_module(name, ldap_client).run() for name in MODULES]):
+        mod = await corountine
+        result = await mod.get_result()
+        log.title(f"{result.get('name').upper()}")
+        if args.details:
+            log.item(mod.data)
+        else:
+            log.item(result.get("content"))
+        log.info('')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Check for credz in LDAP fields")
@@ -43,7 +40,10 @@ if __name__ == '__main__':
     parser.add_argument("-p", "--password", help="Password to authenticate with", required=True)
     parser.add_argument("-t", "--target", help="Target LDAP to request", required=True)
     parser.add_argument("--details", action="store_true", help="Display details")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
+
+    log = CheckrAdapter(verbose=args.verbose)
     url = f"ldap+ntlm-password://{args.domain}\\{args.username}:{args.password}@{args.target}"
     asyncio.run(main(url, args))
 

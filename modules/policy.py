@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+from modules.module import Module
+from lib.utils import translate_flags, convert_wi8_timestamp_to_timedelta
 
 import asyncio
-from lib.utils import translate_flags, convert_wi8_timestamp_to_timedelta
 
 pwdproperties_flags = {
         'PASSWORD_COMPLEX':0x01,
@@ -107,59 +107,60 @@ class PassPol:
             to_return += '\n\t'.join(self.PSOAppliesTo)
         return to_return
 
+class Policy(Module):
+    async def _work(self):
+        passpols = []
+        # Define default password policy attributes and get it from LDAP
+        attributes = [
+                'lockoutDuration',
+                'lockOutObservationWindow',
+                'lockoutThreshold',
+                'maxPwdAge',
+                'minPwdAge',
+                'minPwdLength',
+                'pwdProperties',
+                'pwdHistoryLength',
+                'pwdProperties',
+                ]
+        # Iterator[(dict, Exception)]
+        default_passpol = self.ldap_client.pagedsearch('(objectClass=domain)',
+                attributes)
+        async for passpol, exc in default_passpol:
+            passpol = PassPol(passpol, passpol_type="Default")
+            passpols.append(passpol)
+        # Define PSO attibutes and get it from LDAP
+        attributes = [
+                'description',
+                'name',
+                'distinguishedName',
+                'msDS-MaximumPasswordAge',
+                'msDS-MinimumPasswordAge',
+                'msDS-MinimumPasswordLength',
+                'msDS-PasswordHistoryLength',
+                'msDS-PasswordComplexityEnabled',
+                'msDS-PasswordReversibleEncryptionEnabled',
+                'msDS-LockoutObservationWindow',
+                'msDS-LockoutDuration',
+                'msDS-LockoutThreshold',
+                'msDS-PasswordSettingsPrecedence',
+                'msDS-PSOAppliesTo',
+                'whenCreated',
+                'whenChanged'
+                ]
+        # Iterator[(dict, Exception)]
+        search = self.ldap_client.pagedsearch('(objectClass=msDS-PasswordSettings)', 
+                attributes)
+        async for passpol, exc in search:
+            if exc is not None:
+                raise exc
+            passpol = PassPol(passpol)
+            passpols.append(passpol)
+        self.data = passpols
 
-async def get_policies(ldap_client):
-    passpols = []
-    # Define default password policy attributes and get it from LDAP
-    attributes = [
-            'lockoutDuration',
-            'lockOutObservationWindow',
-            'lockoutThreshold',
-            'maxPwdAge',
-            'minPwdAge',
-            'minPwdLength',
-            'pwdProperties',
-            'pwdHistoryLength',
-            'pwdProperties',
-            ]
-    # Iterator[(dict, Exception)]
-    default_passpol = ldap_client.pagedsearch('(objectClass=domain)',
-            attributes)
-    async for passpol, exc in default_passpol:
-        passpol = PassPol(passpol, passpol_type="Default")
-        passpols.append(passpol)
-    # Define PSO attibutes and get it from LDAP
-    attributes = [
-            'description',
-            'name',
-            'distinguishedName',
-            'msDS-MaximumPasswordAge',
-            'msDS-MinimumPasswordAge',
-            'msDS-MinimumPasswordLength',
-            'msDS-PasswordHistoryLength',
-            'msDS-PasswordComplexityEnabled',
-            'msDS-PasswordReversibleEncryptionEnabled',
-            'msDS-LockoutObservationWindow',
-            'msDS-LockoutDuration',
-            'msDS-LockoutThreshold',
-            'msDS-PasswordSettingsPrecedence',
-            'msDS-PSOAppliesTo',
-            'whenCreated',
-            'whenChanged'
-            ]
-    # Iterator[(dict, Exception)]
-    search = ldap_client.pagedsearch('(objectClass=msDS-PasswordSettings)', 
-            attributes)
-    async for passpol, exc in search:
-        if exc is not None:
-            raise exc
-        passpol = PassPol(passpol)
-        passpols.append(passpol)
-    return passpols
 
-
-def display_passpols_to_table(passpols):
-    print(f"{'Policy name':<40}|{'MinPwdLen':^15}|{'MaxPwdAge (days)':^15}|{'LockTreshold':^15}|{'LockDuration (mins)':^15}|{'Complexity':^15}")
-    for passpol in passpols:
-        print(f"{passpol.name:<40} {passpol.minimumPasswordLength:^15} {passpol.maximumPasswordAge:^15} {passpol.lockoutThreshold:^15} {passpol.lockoutDuration:^15} {passpol.passwordComplexityEnabled:^15} ")
+    async def _result(self):
+        to_return = f"{'Policy name':<40}|{'MinPwdLen':^15}|{'MaxPwdAge (days)':^15}|{'LockTreshold':^15}|{'LockDuration (mins)':^15}|{'Complexity':^15}\n"
+        for passpol in self.data:
+            to_return += f"{passpol.name:<40} {passpol.minimumPasswordLength:^15} {passpol.maximumPasswordAge:^15} {passpol.lockoutThreshold:^15} {passpol.lockoutDuration:^15} {passpol.passwordComplexityEnabled:^15}\n"
+        return to_return
 

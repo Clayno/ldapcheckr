@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from modules.module import Module
 
 import asyncio
 import json
@@ -42,29 +42,34 @@ def load_attributes():
     return attributes
 
 
-async def get_creds(ldap_client):
-    #blacklist = ['msExch', 'mDB']
-    #attributes = load_attributes()
-    results = {}
-    users = ldap_client.pagedsearch('(objectClass=user)', ['*'])
-    async for user in users:
-        user = user[0]
-        output = f"{user['objectName']}\n"
-        for k,v in user['attributes'].items():
-            if k in UNINTERESTING_ATTRIBUTES:
-                continue
-            if isinstance(v, list):
-                try:
-                    v = ''.join(subvalue.decode() if isinstance(subvalue, type(b'')) else subvalue for subvalue in v)
-                except:
-                    v = ''
-            if not isinstance(v, str):
-                continue
-            if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
-                    or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]) \
-                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS) \
-                    or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES if k in INTERESTING_ATTRIBUTES):
-                if user['objectName'] not in results:
-                    results[user['objectName']] = []
-                results[user['objectName']].append(f"{str(k)}: {str(v)}")
-    return results
+class Creds(Module):
+
+    async def _work(self):
+        #blacklist = ['msExch', 'mDB']
+        #attributes = load_attributes()
+        results = {}
+        users = self.ldap_client.pagedsearch('(objectClass=user)', ['*'])
+        async for user in users:
+            user = user[0]
+            output = f"{user['objectName']}\n"
+            for k,v in user['attributes'].items():
+                if k in UNINTERESTING_ATTRIBUTES:
+                    continue
+                if isinstance(v, list):
+                    try:
+                        v = ''.join(subvalue.decode() if isinstance(subvalue, type(b'')) else subvalue for subvalue in v)
+                    except:
+                        v = ''
+                if not isinstance(v, str):
+                    continue
+                if any(keyword in v.lower() for keyword in INTERESTING_KEYWORDS) \
+                        or (k in INTERESTING_ATTRIBUTES and INTERESTING_ATTRIBUTES[k]) \
+                        or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS) \
+                        or any(re.match(pattern, v.lower()) for pattern in INTERESTING_PATTERNS_IN_INTERESTING_ATTRIBUTES if k in INTERESTING_ATTRIBUTES):
+                    if user['objectName'] not in results:
+                        results[user['objectName']] = []
+                    results[user['objectName']].append(f"{str(k)}: {str(v)}")
+        self.data = results
+
+    async def _result(self):
+        return json.dumps(self.data, sort_keys=True, indent=4)

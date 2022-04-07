@@ -1,6 +1,8 @@
+from modules.module import Module
+from lib.utils import translate_flags, convert_wi8_timestamp_to_timedelta
+
 import asyncio
 import re
-from lib.utils import translate_flags, convert_wi8_timestamp_to_timedelta
 
 
 class DomainInfos:
@@ -26,18 +28,22 @@ DomainControllers:
         #    to_return += f"\n\t{attr}: {value}"
         return to_return
 
+class Domain(Module):
 
-async def get_domain(ldap_client):
-    attributes = [
-            'distinguishedName',
-            'dc',
-            'ms-DS-MachineAccountQuota',
-            'msDS-IsDomainFor'
-            ]
-    
-    # Iterator[(dict, Exception)]
-    search = ldap_client.pagedsearch('(objectClass=domain)',
-            attributes)
-    async for domain, exc in search:
-        domain_infos = DomainInfos(domain)
-    return [domain_infos]
+    async def _work(self):
+        attributes = [
+                'distinguishedName',
+                'dc',
+                'ms-DS-MachineAccountQuota',
+                'msDS-IsDomainFor'
+                ]
+        
+        # Iterator[(dict, Exception)]
+        search = self.ldap_client.pagedsearch('(objectClass=domain)',
+                attributes)
+        async for domain, exc in search:
+            domain_infos = DomainInfos(domain)
+        self.data = [domain_infos]
+
+    async def _result(self):
+        return self.data[0]
