@@ -3,7 +3,7 @@
 import asyncio
 import argparse
 import json
-from msldap.commons.url import MSLDAPURLDecoder
+from msldap.commons.factory import LDAPConnectionFactory
 
 from lib.utils import import_module
 from lib.logger import CheckrAdapter
@@ -13,7 +13,7 @@ MODULES = ["domain", "policy", "adidns", "creds"]
 
 
 async def get_client(url):
-    conn_url = MSLDAPURLDecoder(url)
+    conn_url = LDAPConnectionFactory.from_url(url)
     ldap_client = conn_url.get_client()
     _, err = await ldap_client.connect()
     if err is not None:

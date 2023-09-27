@@ -47,44 +47,44 @@ class PassPol:
             )
             self.dn = pol_attrs["distinguishedName"]
             self.maximumPasswordAge = convert_wi8_timestamp_to_timedelta(
-                pol_attrs["msDS-MaximumPasswordAge"][0].decode()
+                pol_attrs["msDS-MaximumPasswordAge"]
             ).days
             self.minimumPasswordAge = convert_wi8_timestamp_to_timedelta(
-                pol_attrs["msDS-MinimumPasswordAge"][0].decode()
+                pol_attrs["msDS-MinimumPasswordAge"]
             ).days
             self.minimumPasswordLength = int(
-                pol_attrs["msDS-MinimumPasswordLength"][0].decode()
+                pol_attrs["msDS-MinimumPasswordLength"]
             )
             self.passwordHistoryLength = int(
-                pol_attrs["msDS-PasswordHistoryLength"][0].decode()
+                pol_attrs["msDS-PasswordHistoryLength"]
             )
             self.passwordComplexityEnabled = (
-                pol_attrs["msDS-PasswordComplexityEnabled"][0].decode() == "TRUE"
+                pol_attrs["msDS-PasswordComplexityEnabled"] == "TRUE"
             )
             self.passwordReversibleEncryptionEnabled = (
-                pol_attrs["msDS-PasswordReversibleEncryptionEnabled"][0].decode()
+                pol_attrs["msDS-PasswordReversibleEncryptionEnabled"]
                 == "TRUE"
             )
             self.lockoutObservationWindow = (
                 convert_wi8_timestamp_to_timedelta(
-                    pol_attrs["msDS-LockoutObservationWindow"][0].decode()
+                    pol_attrs["msDS-LockoutObservationWindow"]
                 ).total_seconds()
                 / 60
             )
             self.lockoutDuration = (
                 convert_wi8_timestamp_to_timedelta(
-                    pol_attrs["msDS-LockoutDuration"][0].decode()
+                    pol_attrs["msDS-LockoutDuration"]
                 ).total_seconds()
                 / 60
             )
-            self.lockoutThreshold = pol_attrs["msDS-LockoutThreshold"][0].decode()
+            self.lockoutThreshold = pol_attrs["msDS-LockoutThreshold"]
             self.PSOAppliesTo = (
-                [group.decode() for group in pol_attrs["msDS-PSOAppliesTo"]]
+                [group for group in pol_attrs["msDS-PSOAppliesTo"]]
                 if "msDS-PSOAppliesTo" in pol_attrs.keys()
                 else []
             )
             self.passwordSettingsPrecedence = int(
-                pol_attrs["msDS-PasswordSettingsPrecedence"][0].decode()
+                pol_attrs["msDS-PasswordSettingsPrecedence"]
             )
         elif passpol_type == "Default":
             self.name = "Default Password Policy"
