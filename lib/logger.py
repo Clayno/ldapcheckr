@@ -7,11 +7,13 @@ from logging.handlers import RotatingFileHandler
 class CheckrAdapter(logging.LoggerAdapter):
     def __init__(self, verbose=False, logger_name="checkr"):
         self.logger = logging.getLogger(logger_name)
+        self.logger.propagate = False
+        
         level = logging.INFO
         if verbose:
             level = logging.DEBUG
-
         self.logger.setLevel(level)
+
         formatter = logging.Formatter(
             f"%(asctime)s :: [{logger_name}] %(levelname)s :: %(message)s"
         )
@@ -25,6 +27,7 @@ class CheckrAdapter(logging.LoggerAdapter):
         stream_formatter = logging.Formatter("%(message)s")
         stream_handler.setFormatter(stream_formatter)
         self.logger.addHandler(stream_handler)
+        
         super().__init__(self.logger, {})
 
     def title(self, msg, *args, **kwargs):
@@ -32,3 +35,8 @@ class CheckrAdapter(logging.LoggerAdapter):
 
     def item(self, msg, *args, **kwargs):
         self.logger.info(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self.logger.error(colored(f"[x] {msg}", "red", attrs=[]), *args, **kwargs)
+
+
