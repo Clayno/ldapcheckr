@@ -71,7 +71,7 @@ class Creds(Module):
                 if isinstance(v, list):
                     try:
                         v = "".join(
-                            subvalue.decode()
+                            subvalue
                             if isinstance(subvalue, type(b""))
                             else subvalue
                             for subvalue in v

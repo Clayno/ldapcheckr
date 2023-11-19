@@ -7,11 +7,11 @@ import re
 class DomainInfos:
     def __init__(self, ldap_result):
         domain = ldap_result["attributes"]
-        self.machineAccountQuota = domain["ms-DS-MachineAccountQuota"][0].decode()
+        self.machineAccountQuota = domain["ms-DS-MachineAccountQuota"]
         self.DN = domain["distinguishedName"]
         self.netbiosName = domain["dc"].upper()
         self.domainControllers = [
-            re.search(r"CN=NTDS Settings,CN=([^,]*),", dc.decode()).groups()[0]
+            re.search(r"CN=NTDS Settings,CN=([^,]*),", dc).groups()[0]
             for dc in domain["msDS-IsDomainFor"]
         ]
 
